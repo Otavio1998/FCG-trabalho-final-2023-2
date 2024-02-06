@@ -236,9 +236,10 @@ glm::vec4 cat_angle = glm::vec4(-M_PI_2,0.0f,0.0f,1.0f);// vetor para a rotação 
 
 bool cat_freefall = FALSE; //bool que indica se o gato esta em queda
 bool cat_jumping = FALSE;
-
+bool cat_walking_front = FALSE;
+bool cat_walking_back = FALSE;
 float velocity_y = 0.0f;
-#define GRAVITY 0.06
+#define GRAVITY 0.5
 
 int main(int argc, char* argv[])
 {
@@ -352,6 +353,9 @@ int main(int argc, char* argv[])
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+
+    int keytest = 0;
+    int actiontst = 0;
 
 
     double previous_time = glfwGetTime();
@@ -496,7 +500,21 @@ int main(int argc, char* argv[])
         // pela biblioteca GLFW.
 
 
-        cat_position.y += velocity_y;
+
+        if(cat_walking_front)//caso o gato esteja caminhando para frente
+        {
+            cat_position.x += camera_view_vector.x*1.0*delta_time;
+            cat_position.z += camera_view_vector.z*1.0*delta_time;
+
+        }
+        if(cat_walking_back)//caso o gato esteja caminhando para trás
+        {
+            cat_position.x -= camera_view_vector.x*1.0*delta_time;
+            cat_position.z -= camera_view_vector.z*1.0*delta_time;
+        }
+
+
+        cat_position.y += velocity_y*delta_time;
         //velocity_y -= GRAVITY;
         if(cat_position.y <= -0.95)
         {
@@ -504,7 +522,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            velocity_y -= GRAVITY;
+            velocity_y -= GRAVITY*delta_time;
         }
 
 
@@ -1259,22 +1277,29 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     /////Movimentos do Gato
     if (key == GLFW_KEY_W && action == GLFW_REPEAT)//Movimenta o gato para frente
     {
-        cat_position.x += cameraview->x*5.0*delta_time;
-        cat_position.z += cameraview->z*5.0*delta_time;
+        cat_walking_front = TRUE;
+
+        //cat_position.x += cameraview->x*5.0*delta_time;
+        //cat_position.z += cameraview->z*5.0*delta_time;
+    }
+    if(key == GLFW_KEY_W && action == GLFW_RELEASE)//caso solte a tecla para de movimentar para frente
+    {
+        cat_walking_front = FALSE;
     }
     if (key == GLFW_KEY_S && action == GLFW_REPEAT)//Movimenta o gato para trás
     {
-        cat_position.x -= cameraview->x*3.0*delta_time;
-        cat_position.z -= cameraview->z*3.0*delta_time;
+        cat_walking_back = TRUE;
+        //cat_position.x -= cameraview->x*3.0*delta_time;
+        //cat_position.z -= cameraview->z*3.0*delta_time;
+    }
+    if(key == GLFW_KEY_S && action == GLFW_RELEASE)//caso solte a tecla, para de movimentar para tras
+    {
+        cat_walking_back = FALSE;
     }
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        std::cout << cat_position.y << std::endl;
-        //std::cout << cameraview->y << std::endl;
-        //cat_jumping = TRUE;
-        //cat_freefall = FALSE;
         if(cat_position.y <= -0.95)
-            velocity_y = 0.3f;
+            velocity_y = 0.75f;
 
     }
 
