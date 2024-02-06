@@ -234,6 +234,12 @@ double delta_time;
 glm::vec4 cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);//vetor para guardar posição do gato
 glm::vec4 cat_angle = glm::vec4(-M_PI_2,0.0f,0.0f,1.0f);// vetor para a rotação do gato em relação a camera
 
+bool cat_freefall = FALSE; //bool que indica se o gato esta em queda
+bool cat_jumping = FALSE;
+
+float velocity_y = 0.0f;
+#define GRAVITY 0.06
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -438,13 +444,13 @@ int main(int argc, char* argv[])
 #define ROOM 3
 
         // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
+        model = Matrix_Translate(1.0f,-0.5f,-1.0f)
                 * Matrix_Rotate_Z(0.6f)
                 * Matrix_Rotate_X(0.2f)
-                * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
+                * Matrix_Scale(0.1f, 0.1f,0.1f);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, SPHERE);
-        //DrawVirtualObject("the_sphere");
+        DrawVirtualObject("the_sphere");
 
         // Desenhamos o modelo do gato
         model = Matrix_Translate(cat_position.x, cat_position.y, cat_position.z)
@@ -488,6 +494,22 @@ int main(int argc, char* argv[])
         // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
+
+
+        cat_position.y += velocity_y;
+        //velocity_y -= GRAVITY;
+        if(cat_position.y <= -0.95)
+        {
+            velocity_y = 0.0f;
+        }
+        else
+        {
+            velocity_y -= GRAVITY;
+        }
+
+
+
+
         glfwPollEvents();
     }
 
@@ -1242,14 +1264,21 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     }
     if (key == GLFW_KEY_S && action == GLFW_REPEAT)//Movimenta o gato para trás
     {
-        cat_position.x -= cameraview->x*5.0*delta_time;
-        cat_position.z -= cameraview->z*5.0*delta_time;
+        cat_position.x -= cameraview->x*3.0*delta_time;
+        cat_position.z -= cameraview->z*3.0*delta_time;
     }
-    /*if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        g_AngleX += (mod & GLFW_MOD_SHIFT) ? -delta : delta;
+        std::cout << cat_position.y << std::endl;
+        //std::cout << cameraview->y << std::endl;
+        //cat_jumping = TRUE;
+        //cat_freefall = FALSE;
+        if(cat_position.y <= -0.95)
+            velocity_y = 0.3f;
+
     }
-    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+
+    /*if (key == GLFW_KEY_D && action == GLFW_PRESS)
     {
         g_AngleX += (mod & GLFW_MOD_SHIFT) ? -delta : delta;
     }*/
