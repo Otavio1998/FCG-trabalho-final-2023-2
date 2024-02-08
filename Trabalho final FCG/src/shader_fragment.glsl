@@ -43,6 +43,10 @@ out vec4 color;
 #define M_PI   3.14159265358979323846
 #define M_PI_2 1.57079632679489661923
 
+
+
+
+
 void main()
 {
     // Obtemos a posição da câmera utilizando a inversa da matriz que define o
@@ -70,6 +74,17 @@ void main()
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
+    float q_phong;
+    float q_blinn;
+    vec3 kd;
+    vec3 ka;
+    vec3 ks;
+    vec4 r = -l + 2*n * dot(n,l);
+    vec3 I = vec3(1.0, 1.0, 1.0);
+    vec3 Ia = vec3(0.2,0.2,0.2);
+    vec3 ambient_term = ka*Ia;
+    vec3 phong_specular_term  = ks * I * pow(max(0, dot(r, v)), q_phong);
+    vec3 blinn_phong_specular_term = ks * I * pow(dot(n, r),q_blinn);
 
     if ( object_id == SPHERE )
     {
@@ -99,6 +114,12 @@ void main()
 
         U = (theta + M_PI)/(2*M_PI);
         V = (phi + M_PI_2)/(M_PI);
+
+        kd = texture(TextureImage0, vec2(U,V)).rgb;
+
+        ka = vec3(0.0,0.0,0.0);
+        ks = vec3(0.8,0.8,0.8);
+        q_blinn = 80.0;
     }
     else if ( object_id == CAT )
     {
@@ -139,15 +160,17 @@ void main()
     // Equação de Iluminação
     float lambert = max(0,dot(n,l));
 
+
     if(object_id == CAT)
-        color.rgb = Texture_Cat;
+        color.rgb = Texture_Cat*(lambert+0.01);
     else
     {
         if(object_id == ROOM)
             color.rgb = Texture_Room;
         else
         {
-            color.rgb = Kd0 * (lambert + 0.01) + Kd1*(1-(pow(lambert, 0.1)) +0.01);
+            //color.rgb = Kd0 * (lambert + 0.01) + Kd1*(1-(pow(lambert, 0.1)) +0.01);
+            color.rgb = Kd0 * I + lambert + ambient_term + blinn_phong_specular_term;
         }
 
     }

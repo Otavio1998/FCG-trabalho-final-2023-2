@@ -6,7 +6,7 @@
 //               Prof. Eduardo Gastal
 //
 //                   Trabalho Final
-//    Otávio Moraes Brito Capelão, Isis Burmeister Pericolo
+//    Otávio Moraes Brito Capelão
 //
 
 // Arquivos "headers" padrões de C podem ser incluídos em um
@@ -225,14 +225,26 @@ GLint g_projection_uniform;
 GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
+GLint g_object_x_scale_uniform;
+GLint g_object_y_scale_uniform;
+GLint g_plane_type_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
 //variaveis globais da logica do jogo
 double delta_time;
-glm::vec4 cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);//vetor para guardar posição do gato
+glm::vec4 cat_position = glm::vec4(1.0f, -0.95f,1.0f, 1.0f);//vetor para guardar posição do gato
 glm::vec4 cat_angle = glm::vec4(-M_PI_2,0.0f,0.0f,1.0f);// vetor para a rotação do gato em relação a camera
+
+struct Bbox {
+    float minX;
+    float minY;
+    float minZ;
+    float maxX;
+    float maxY;
+    float maxZ;
+};
 
 bool cat_freefall = FALSE; //bool que indica se o gato esta em queda
 bool cat_jumping = FALSE;
@@ -240,6 +252,8 @@ bool cat_walking_front = FALSE;
 bool cat_walking_back = FALSE;
 float velocity_y = 0.0f;
 #define GRAVITY 0.5
+
+bool collisionBoxToBox(Bbox player, Bbox cube);
 
 int main(int argc, char* argv[])
 {
@@ -337,6 +351,10 @@ int main(int argc, char* argv[])
     ComputeNormals(&roommodel);
     BuildTrianglesAndAddToVirtualScene(&roommodel);
 
+    ObjModel cubemodel("../../data/cube.obj");
+    ComputeNormals(&cubemodel);
+    BuildTrianglesAndAddToVirtualScene(&cubemodel);
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -354,8 +372,8 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    int keytest = 0;
-    int actiontst = 0;
+    //int keytest = 0;
+    //int actiontst = 0;
 
 
     double previous_time = glfwGetTime();
@@ -463,14 +481,8 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, CAT);
         DrawVirtualObject("Cat");
 
-
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, PLANE);
-        //DrawVirtualObject("the_plane");
-
         // Desenho do modelo da sala
+        model = Matrix_Translate(0.0f,-1.1f,0.0f);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, ROOM);
         DrawVirtualObject("Room");
@@ -499,15 +511,35 @@ int main(int argc, char* argv[])
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
 
+        //float epsilon = 0.0f;
 
+        Bbox catBbox = {
+            (cat_position.x - (0.01 / 2)),
+            (cat_position.y - (0.01 / 2)),
+            (cat_position.z - (0.01 / 2)),
+            (cat_position.x + (0.01 / 2)),
+            (cat_position.y + (0.01 / 2)),
+            (cat_position.z + (0.01 / 2)),
+        };
 
-        if(cat_walking_front)//caso o gato esteja caminhando para frente
+        Bbox bedBBox = {
+            0.75f - (2.3f / 2),
+            -0.8f - (0.4f / 2),
+            -1.2f - (1.35f / 2),
+            0.75f + (2.3f / 2),
+            -0.8f + (0.4f / 2),
+            -1.2f + (1.35f / 2),
+        };
+
+        bool collisionCat2Bed = collisionBoxToBox(catBbox, bedBBox);
+
+        if(cat_walking_front && !collisionCat2Bed)//caso o gato esteja caminhando para frente
         {
             cat_position.x += camera_view_vector.x*1.0*delta_time;
             cat_position.z += camera_view_vector.z*1.0*delta_time;
 
         }
-        if(cat_walking_back)//caso o gato esteja caminhando para trás
+        if(cat_walking_back && !collisionCat2Bed)//caso o gato esteja caminhando para trás
         {
             cat_position.x -= camera_view_vector.x*1.0*delta_time;
             cat_position.z -= camera_view_vector.z*1.0*delta_time;
@@ -516,9 +548,10 @@ int main(int argc, char* argv[])
 
         cat_position.y += velocity_y*delta_time;
         //velocity_y -= GRAVITY;
-        if(cat_position.y <= -0.95)
+        if(cat_position.y <= -0.95 || collisionCat2Bed)
         {
             velocity_y = 0.0f;
+            //collisionCat2Bed = false;
         }
         else
         {
@@ -665,6 +698,9 @@ void LoadShadersFromFiles()
     g_object_id_uniform  = glGetUniformLocation(g_GpuProgramID, "object_id"); // Variável "object_id" em shader_fragment.glsl
     g_bbox_min_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_min");
     g_bbox_max_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_max");
+    g_object_x_scale_uniform  = glGetUniformLocation(g_GpuProgramID, "x_scale");
+    g_object_y_scale_uniform  = glGetUniformLocation(g_GpuProgramID, "y_scale");
+    g_plane_type_uniform      = glGetUniformLocation(g_GpuProgramID, "plane_type");
 
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
     glUseProgram(g_GpuProgramID);
@@ -1224,7 +1260,7 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 // tecla do teclado. Veja http://www.glfw.org/docs/latest/input_guide.html#input_key
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
 {
-    glm::vec4* cameraview = static_cast <glm::vec4*>(glfwGetWindowUserPointer(window));//chamada para obter camera_view como um ponteiro dentro do callback
+    //glm::vec4* cameraview = static_cast <glm::vec4*>(glfwGetWindowUserPointer(window));//chamada para obter camera_view como um ponteiro dentro do callback
 
     // ===================
     // Não modifique este loop! Ele é utilizando para correção automatizada dos
@@ -1299,14 +1335,15 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
         if(cat_position.y <= -0.95)
+            //cat_position.y += 0.1;
             velocity_y = 0.75f;
 
     }
 
-    /*if (key == GLFW_KEY_D && action == GLFW_PRESS)
+    if (key == GLFW_KEY_I && action == GLFW_PRESS)
     {
-        g_AngleX += (mod & GLFW_MOD_SHIFT) ? -delta : delta;
-    }*/
+        cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);
+    }
     //////
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.
@@ -1652,6 +1689,13 @@ void PrintObjModelInfo(ObjModel* model)
         }
         printf("\n");
     }
+}
+
+bool collisionBoxToBox(Bbox player, Bbox cube) {
+    return
+        (player.minX > cube.minX && player.maxX < cube.maxX) &&
+        (player.minY > cube.minY && player.maxY < cube.maxY) &&
+        (player.minZ > cube.minZ && player.maxZ < cube.maxZ);
 }
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
