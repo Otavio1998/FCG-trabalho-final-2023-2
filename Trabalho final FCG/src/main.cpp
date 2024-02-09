@@ -568,9 +568,9 @@ int main(int argc, char* argv[])
             {
 
             }
-        else if(cat_position.x < bedBBox.minX && )// ULTIMA MODIFICAÇÃO FEITA
+        else if(cat_position.z < bedBBox.maxZ && cat_position.y <= -0.95)// ULTIMA MODIFICAÇÃO FEITA
             {
-                std::cout << "trabalho merdaaaaaaaaaa" << std::endl;
+                std::cout << "colisão funcionaaaaaaaaa" << std::endl;
                 cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);
 
             }
