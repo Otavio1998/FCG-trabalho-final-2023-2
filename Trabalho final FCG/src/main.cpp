@@ -254,6 +254,8 @@ float velocity_y = 0.0f;
 #define GRAVITY 0.5
 
 bool collisionBoxToBox(Bbox player, Bbox cube);
+bool collisionCat2Bedbottom(Bbox player, Bbox cube);
+bool collisionCat2Bedside(Bbox player, Bbox cube);
 
 int main(int argc, char* argv[])
 {
@@ -532,18 +534,46 @@ int main(int argc, char* argv[])
         };
 
         bool collisionCat2Bed = collisionBoxToBox(catBbox, bedBBox);
+        bool ontopofbed = collisionCat2Bedbottom(catBbox, bedBBox);
+        bool sidecollision = collisionCat2Bedside(catBbox, bedBBox);
 
-        if(cat_walking_front && !collisionCat2Bed)//caso o gato esteja caminhando para frente
+        std::cout << "side collision: " << sidecollision<< std::endl;
+        std::cout << "na cama: " << ontopofbed<< std::endl;
+
+
+
+        if(cat_walking_front && (!collisionCat2Bed))//caso o gato esteja caminhando para frente
         {
             cat_position.x += camera_view_vector.x*1.0*delta_time;
             cat_position.z += camera_view_vector.z*1.0*delta_time;
 
         }
+        else if(cat_walking_front && cat_position.y < bedBBox.maxY)
+            {
+                cat_position.x += camera_view_vector.x*1.0*delta_time;
+                cat_position.z += camera_view_vector.z*1.0*delta_time;
+            }
         if(cat_walking_back && !collisionCat2Bed)//caso o gato esteja caminhando para trás
         {
             cat_position.x -= camera_view_vector.x*1.0*delta_time;
             cat_position.z -= camera_view_vector.z*1.0*delta_time;
         }
+        else if(cat_walking_back && cat_position.y < bedBBox.maxY)
+        {
+            cat_position.x -= camera_view_vector.x*1.0*delta_time;
+            cat_position.z -= camera_view_vector.z*1.0*delta_time;
+        }
+
+        if(!ontopofbed)
+            {
+
+            }
+        else if(cat_position.x < bedBBox.minX && )// ULTIMA MODIFICAÇÃO FEITA
+            {
+                std::cout << "trabalho merdaaaaaaaaaa" << std::endl;
+                cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);
+
+            }
 
 
         cat_position.y += velocity_y*delta_time;
@@ -1336,13 +1366,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     {
         if(cat_position.y <= -0.95)
             //cat_position.y += 0.1;
-            velocity_y = 0.75f;
+            velocity_y = 0.8f;
 
     }
 
     if (key == GLFW_KEY_I && action == GLFW_PRESS)
     {
-        cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);
+        cat_position = glm::vec4(1.0f, -0.95f,1.0f, 1.0f);
     }
     //////
 
@@ -1696,6 +1726,19 @@ bool collisionBoxToBox(Bbox player, Bbox cube) {
         (player.minX > cube.minX && player.maxX < cube.maxX) &&
         (player.minY > cube.minY && player.maxY < cube.maxY) &&
         (player.minZ > cube.minZ && player.maxZ < cube.maxZ);
+}
+
+bool collisionCat2Bedbottom(Bbox player, Bbox cube)
+{
+    return
+        (player.minY > cube.minY && player.maxY < cube.maxY);
+}
+bool collisionCat2Bedside(Bbox player, Bbox cube)
+{
+    return
+        (player.minX > cube.minX && player.maxX < cube.maxX) &&
+        (player.minZ > cube.minZ && player.maxZ < cube.maxZ);
+
 }
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
