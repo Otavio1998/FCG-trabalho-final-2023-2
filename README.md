@@ -34,6 +34,9 @@ Colisão:
   colisão caixa-caixa:
   ![Screenshot_2279](https://github.com/Otavio1998/FCG-trabalho-final-2023-2/assets/37491631/6cccd38a-199b-46a3-a126-c1b84f16b0c8)
 
+   
+    
+    
     A colisão caixa a caixa é feita detectando se a posição da do gato esta entre sua bounding box e a bounding box da cama. Quando o gato esta no chão e a colisão é detectada, ele simplesmente volta para uma posiçaõ especifica, não o deixando atravessar a cama. Caso a colisão seja detectada em cima da cama, a velocidade do pulo do gato é zerada, fazendo com que a gravidade n aja mais sobre ela e o gato possa se movimentar em cima da cama. 
     A colisão esfera-caixa é feita detectando se a distacia ao quadrado, que é calculada utilizando a parte da bounding box mais proxima do centro da esfera, é menor do que o raio ao quadrado. Quando isso acontece, o bool hitsphere fica como verdadeiro, assim confirmando a detecção da colisão.
 
