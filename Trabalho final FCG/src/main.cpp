@@ -236,6 +236,7 @@ GLuint g_NumLoadedTextures = 0;
 double delta_time;
 glm::vec4 cat_position = glm::vec4(1.0f, -0.95f,1.0f, 1.0f);//vetor para guardar posição do gato
 glm::vec4 cat_angle = glm::vec4(-M_PI_2,0.0f,0.0f,1.0f);// vetor para a rotação do gato em relação a camera
+glm::vec4 sphere_position = glm::vec4(1.0f,-0.5f,-1.0f, 1.0);
 
 struct Bbox {
     float minX;
@@ -246,16 +247,34 @@ struct Bbox {
     float maxZ;
 };
 
+struct sphere {
+    float min_X;
+    float min_Y;
+    float min_Z;
+    float max_X;
+    float max_Y;
+    float max_Z;
+    float centerX;
+    float centerY;
+    float centerZ;
+    float radius;
+};
+
 bool cat_freefall = FALSE; //bool que indica se o gato esta em queda
 bool cat_jumping = FALSE;
 bool cat_walking_front = FALSE;
 bool cat_walking_back = FALSE;
+bool complete_move = FALSE;
 float velocity_y = 0.0f;
 #define GRAVITY 0.5
 
 bool collisionBoxToBox(Bbox player, Bbox cube);
 bool collisionCat2Bedbottom(Bbox player, Bbox cube);
 bool collisionCat2Bedside(Bbox player, Bbox cube);
+
+float clamp(float val, float minn, float maxx);
+bool sphere_cat_collision(sphere ball, Bbox player);
+glm::vec4 its_bezier_time(glm::vec4 p0, glm::vec4 p1, glm::vec4 p2, glm::vec4 p3, float t);
 
 int main(int argc, char* argv[])
 {
@@ -374,12 +393,18 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    //int keytest = 0;
-    //int actiontst = 0;
 
+    glm::vec4 P0 = glm:: vec4(1.0f,-0.5f,-1.0f, 1.0); //posição inicial para curva
+    glm::vec4 P1 = glm:: vec4(1.3f, -0.3f,-0.5f, 1.0f);
+    glm::vec4 P2 = glm:: vec4(1.15f, -0.6f,0.5f, 1.0f);
+    glm::vec4 P3 = glm:: vec4(1.0f, -0.95f,1.0f, 1.0f);// posição final para a curva
 
     double previous_time = glfwGetTime();
     double current_time;
+    float inicio;
+    float duration = 10.0f;
+    float fim;
+    float current;
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
@@ -468,9 +493,9 @@ int main(int argc, char* argv[])
 #define ROOM 3
 
         // Desenhamos o modelo da esfera
-        model = Matrix_Translate(1.0f,-0.5f,-1.0f)
-                * Matrix_Rotate_Z(0.6f)
-                * Matrix_Rotate_X(0.2f)
+        model = Matrix_Translate(sphere_position.x,sphere_position.y,sphere_position.z)
+                //* Matrix_Rotate_Z(0.6f)
+                //* Matrix_Rotate_X(0.2f)
                 * Matrix_Scale(0.1f, 0.1f,0.1f);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, SPHERE);
@@ -513,7 +538,28 @@ int main(int argc, char* argv[])
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
 
-        //float epsilon = 0.0f;
+
+
+        float scaled_minx  = (g_VirtualScene["the_sphere"].bbox_min.x * (0.1/2)) + (sphere_position.x);
+        float scaled_miny  = (g_VirtualScene["the_sphere"].bbox_min.y * (0.1/2)) + (sphere_position.y);
+        float scaled_minz  = (g_VirtualScene["the_sphere"].bbox_min.z * (0.1/2)) + (sphere_position.z);
+        float scaled_maxx  = (g_VirtualScene["the_sphere"].bbox_max.x * (0.1/2)) + (sphere_position.x);
+        float scaled_maxy  = (g_VirtualScene["the_sphere"].bbox_max.y * (0.1/2)) + (sphere_position.y);
+        float scaled_maxz  = (g_VirtualScene["the_sphere"].bbox_max.z * (0.1/2)) + (sphere_position.z);
+
+        //std::cout << "scaled_minx " << scaled_minx << std::endl;
+        //std::cout << "scaled_miny " << scaled_miny << std::endl;
+        //std::cout << "scaled_minz " << scaled_minz << std::endl;
+        //std::cout << "scaled_maxx " << scaled_maxx << std::endl;
+        //std::cout << "scaled_maxy " << scaled_maxy << std::endl;
+        //std::cout << "scaled_maxz " << scaled_maxz << std::endl;
+
+
+
+        float center_x = (scaled_minx + scaled_maxx)/2.0f;
+        float center_y = (scaled_miny + scaled_maxy)/2.0f;
+        float center_z = (scaled_minz + scaled_maxz)/2.0f;
+        float radiuss =  0.25f;
 
         Bbox catBbox = {
             (cat_position.x - (0.01 / 2)),
@@ -533,12 +579,35 @@ int main(int argc, char* argv[])
             -1.2f + (1.35f / 2),
         };
 
+        sphere sphereBbox = {
+            scaled_minx,
+            scaled_miny,
+            scaled_minz,
+            scaled_maxx,
+            scaled_maxy,
+            scaled_maxz,
+            center_x,
+            center_y,
+            center_z,
+            radiuss,
+        };
+
         bool collisionCat2Bed = collisionBoxToBox(catBbox, bedBBox);
         bool ontopofbed = collisionCat2Bedbottom(catBbox, bedBBox);
         bool sidecollision = collisionCat2Bedside(catBbox, bedBBox);
+        bool hitsphere = sphere_cat_collision(sphereBbox, catBbox);
+        if(hitsphere)
+        {
+            inicio = glfwGetTime();
+            fim = inicio + duration;
+            //std::cout<< "inicio "<< inicio<<std::endl;
+            //std::cout<< "fim "<< fim<<std::endl;
 
-        std::cout << "side collision: " << sidecollision<< std::endl;
-        std::cout << "na cama: " << ontopofbed<< std::endl;
+        }
+
+        //std::cout << "side collision: " << sidecollision<< std::endl;
+        //std::cout << "na cama: " << ontopofbed<< std::endl;
+        //std::cout << "acertou ? " << hitsphere << std::endl;
 
 
 
@@ -568,25 +637,58 @@ int main(int argc, char* argv[])
             {
 
             }
-        else if(cat_position.z < bedBBox.maxZ && cat_position.y <= -0.95)// ULTIMA MODIFICAÇÃO FEITA
+        else if(cat_position.z < bedBBox.maxZ && cat_position.y <= -0.95)
             {
-                std::cout << "colisão funcionaaaaaaaaa" << std::endl;
+                //std::cout << "colisão funcionaaaaaaaaa" << std::endl;
                 cat_position = glm::vec4(1.0f, -0.95f,0.0f, 1.0f);
 
             }
 
 
         cat_position.y += velocity_y*delta_time;
-        //velocity_y -= GRAVITY;
         if(cat_position.y <= -0.95 || collisionCat2Bed)
         {
             velocity_y = 0.0f;
-            //collisionCat2Bed = false;
+
         }
         else
         {
             velocity_y -= GRAVITY*delta_time;
         }
+
+
+        //std::cout<< "inicio " << inicio << std::endl;
+
+        double current_timee = glfwGetTime();
+        float interval = sin(current_timee*0.08f);
+        if(hitsphere || !complete_move)
+        {
+
+
+            if(glfwGetTime() <= fim)
+            {
+                sphere_position = its_bezier_time(P0,P1,P2,P3,interval);
+                //std::cout<<"interval " << interval << std::endl;
+
+
+                if(sphere_position == P3)
+                {
+                    complete_move = TRUE;
+                }
+            }
+
+
+            //std::cout << "bezier activation" << std::endl;
+        }
+        //std::cout<< "sphere position: " << sphere_position.x<< std::endl;
+        //std::cout<< "sphere position: " << sphere_position.y<< std::endl;
+        //std::cout<< "sphere position: " << sphere_position.z<< std::endl;
+
+        //std::cout<< "cat y: " << cat_position.y<< std::endl;
+
+
+
+
 
 
 
@@ -1740,6 +1842,35 @@ bool collisionCat2Bedside(Bbox player, Bbox cube)
         (player.minZ > cube.minZ && player.maxZ < cube.maxZ);
 
 }
+
+float clamp(float val, float minn, float maxx)
+{
+    return std::max(minn, std::min(val, maxx));
+}
+
+bool sphere_cat_collision(sphere ball, Bbox player)
+{
+    float closestx = clamp(ball.centerX, player.minX, player.maxX);
+    float closesty = clamp(ball.centerY, player.minY, player.maxY);
+    float closestz = clamp(ball.centerZ, player.minZ, player.maxZ);
+
+    float dist_quad =(((closestx - ball.centerX)*(closestx - ball.centerX))+
+                        ((closesty - ball.centerY)*(closesty - ball.centerY))+
+                        ((closestz - ball.centerZ)*(closestz - ball.centerZ)));
+
+    return dist_quad < (ball.radius*ball.radius);
+}
+
+glm::vec4 its_bezier_time(glm::vec4 p0,glm::vec4 p1,glm::vec4 p2,glm::vec4 p3, float t)
+{
+
+    return glm::vec4((pow((1.0f - t),3) * p0.x + 3*t*(pow((1.0f-t),2))*p1.x + 3 * (pow(t,2))*(1.0f-t)*p2.x + pow(t,3) * p3.x),
+                        (pow((1.0f - t),3) * p0.y + 3*t*(pow((1.0f-t),2))*p1.y + 3 * (pow(t,2))*(1.0f-t)*p2.y + pow(t,3) * p3.y),
+                        (pow((1.0f - t),3) * p0.z + 3*t*(pow((1.0f-t),2))*p1.z + 3 * (pow(t,2))*(1.0f-t)*p2.z + pow(t,3) * p3.z),
+                        1.0f);
+}
+
+
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
 // vim: set spell spelllang=pt_br :
