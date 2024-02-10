@@ -32,11 +32,15 @@ Colisão:
   Os bounding boxes do gato e da cama são da mesma estrutura, sendo apenas instanciados com valores referentes aos objetos que ele devem representar. Já a bounding box da esfera é mais complicada, precisando haver um calculo para reescalar e transladar a os valore min e max da bounding box dada pelo g_VirtualScene, a translação da esfera depende do vetor sphere_position para garantir que sua bounding box siga a posição da esfera quando ela se mover. A bounding box do gato também depende do vetor cat_position pelo mesmo motivo citado anteriormente.
   
   colisão caixa-caixa:
+  ![Screenshot_2279](https://github.com/Otavio1998/FCG-trabalho-final-2023-2/assets/37491631/6cccd38a-199b-46a3-a126-c1b84f16b0c8)
+
     A colisão caixa a caixa é feita detectando se a posição da do gato esta entre sua bounding box e a bounding box da cama. Quando o gato esta no chão e a colisão é detectada, ele simplesmente volta para uma posiçaõ especifica, não o deixando atravessar a cama. Caso a colisão seja detectada em cima da cama, a velocidade do pulo do gato é zerada, fazendo com que a gravidade n aja mais sobre ela e o gato possa se movimentar em cima da cama. 
     A colisão esfera-caixa é feita detectando se a distacia ao quadrado, que é calculada utilizando a parte da bounding box mais proxima do centro da esfera, é menor do que o raio ao quadrado. Quando isso acontece, o bool hitsphere fica como verdadeiro, assim confirmando a detecção da colisão.
 
 Curva de Bezier:
   Ao colidir com a esfera, a curva de bezier que a movimente é ativada. Isto é dado pelo bool hitsphere, fazendo com que a variavel inicio pegue o tempo inicial e a variavel fim seja inicializada com o inicio + duration(que é uma constante para a duração da curva). Apos isso, as variaveis current_timee e interval são inicializadas com glfwGetTime e sin(current_timee*0.08) respectivamente. Caso o hitspshere seja verdadeiro ou o complete_move(se o movimento foi completado ou não) seja fals, ele então faz a posição da esfera receber as posições dadas pela curva de bezier, sendo mais rápida no inicio um pouco mais lenta ao longo da duração. Quando a posição da esfera atinge o ultimo ponto da curva de Bezier(P3), ele então seta o complete sphere como verdadeiro.
+
+Vale notar que, de longe, a curva de Bezier e as colisões foram as partes mais dificeis da implementação.
   
 
 
